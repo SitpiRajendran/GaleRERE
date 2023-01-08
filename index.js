@@ -1,5 +1,7 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
+import * as dotenv from 'dotenv' 
+dotenv.config();
 
 const stationRef = "STIF:StopPoint:Q:41033:";
 const url = 'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=' + stationRef;
