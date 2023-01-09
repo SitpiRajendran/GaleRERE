@@ -1,6 +1,9 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
-import * as dotenv from 'dotenv' 
+import * as dotenv from 'dotenv'
+import cron from 'node-cron';
+
+
 dotenv.config();
 
 const stationRef = "STIF:StopPoint:Q:41033:";
@@ -16,90 +19,101 @@ const trainFutur = []
 const autreTrain = []
 const nonNormal = []
 
-fetch(url, options)
-    .then(res => res.json())
-    .then(json => {
-        json.Siri.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit.forEach(train => {
-            if (train.MonitoredVehicleJourney.LineRef.value == "STIF:Line::C01729:") {
-                if (train.MonitoredVehicleJourney.MonitoredCall.VehicleAtStop) {
-                    trainPassé.push({
-                        "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
-                        "ligne": "RER E",
-                        "mission": train.MonitoredVehicleJourney.JourneyNote[0].value,
-                        "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
-                        "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
-                        "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
-                        "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
-                        "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
-                    })
+cron.schedule('0,15,30,45 * * * *', () => {
+    console.log('running a task every minute');
+    fetch(url, options)
+        .then(res => {
+            if (res.ok) {
+                return res.json();
+            }
+            throw new Error('Something went wrong');
+        })
+        .then(json => {
+            json.Siri.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit.forEach(train => {
+                if (train.MonitoredVehicleJourney.LineRef.value == "STIF:Line::C01729:") {
+                    if (train.MonitoredVehicleJourney.MonitoredCall.VehicleAtStop) {
+                        trainPassé.push({
+                            "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
+                            "ligne": "RER E",
+                            "mission": train.MonitoredVehicleJourney.JourneyNote[0].value,
+                            "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
+                            "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
+                            "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
+                            "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
+                            "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
+                        })
+                    } else {
+                        trainFutur.push({
+                            "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
+                            "ligne": "RER E",
+                            "mission": train.MonitoredVehicleJourney.JourneyNote[0].value,
+                            "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
+                            "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
+                            "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
+                            "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
+                            "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
+                        })
+                    }
                 } else {
-                    trainFutur.push({
-                        "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
-                        "ligne": "RER E",
-                        "mission": train.MonitoredVehicleJourney.JourneyNote[0].value,
-                        "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
-                        "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
-                        "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
-                        "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
-                        "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
-                    })
+                    if (train.MonitoredVehicleJourney.LineRef.value == "STIF:Line::C01747:") {
+                        autreTrain.push({
+                            "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
+                            "ligne": "TER Grand Est",
+                            "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
+                            "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
+                            "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
+                            "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
+                            "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
+                        })
+                    }
+                    if (train.MonitoredVehicleJourney.LineRef.value == "STIF:Line::C01730:") {
+                        autreTrain.push({
+                            "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
+                            "ligne": "Ligne P",
+                            "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
+                            "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
+                            "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
+                            "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
+                            "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
+                        })
+                    }
                 }
-            } else {
-                if (train.MonitoredVehicleJourney.LineRef.value == "STIF:Line::C01747:") {
-                    autreTrain.push({
-                        "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
-                        "ligne": "TER Grand Est",
-                        "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
-                        "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
-                        "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
-                        "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
-                        "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
-                    })
-                }
-                if (train.MonitoredVehicleJourney.LineRef.value == "STIF:Line::C01730:") {
-                    autreTrain.push({
-                        "id": train.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef,
-                        "ligne": "Ligne P",
-                        "destination": train.MonitoredVehicleJourney.DestinationName[0].value,
-                        "arrivee": getTime(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime),
-                        "arriveeReelle": getTime(train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime),
-                        "status": train.MonitoredVehicleJourney.MonitoredCall.ArrivalStatus,
-                        "difference": timeDiff(train.MonitoredVehicleJourney.MonitoredCall.AimedArrivalTime, train.MonitoredVehicleJourney.MonitoredCall.ExpectedArrivalTime)
-                    })
-                }
-            }
-        })
+            })
 
-        console.log("Train passé : " + trainPassé.length)
-        trainPassé.forEach(train => {
-            console.log(train)
-            if (train.status != 'onTime') {
-                nonNormal.push(train)
-            }
-        })
-        console.log("\n ---- \n")
-        console.log("Train futur : " + trainFutur.length)
-        trainFutur.forEach(train => {
-            console.log(train)
-            if (train.status != 'onTime') {
-                nonNormal.push(train)
-            }
-        })
-        console.log("\n ---- \n")
-        console.log("Autre Train : " + autreTrain.length)
-        autreTrain.forEach(train => {
-        })
-        console.log("\n ---- \n")
-        console.log("Train Non Normal: " + nonNormal.length)
-        nonNormal.forEach(train => {
-            console.log(train)
-        })
+            console.log("Train passé : " + trainPassé.length)
+            trainPassé.forEach(train => {
+                console.log(train)
+                if (train.status != 'onTime') {
+                    nonNormal.push(train)
+                }
+            })
+            console.log("\n ---- \n")
+            console.log("Train futur : " + trainFutur.length)
+            trainFutur.forEach(train => {
+                console.log(train)
+                if (train.status != 'onTime') {
+                    nonNormal.push(train)
+                }
+            })
+            console.log("\n ---- \n")
+            console.log("Autre Train : " + autreTrain.length)
+            autreTrain.forEach(train => {
+            })
+            console.log("\n ---- \n")
+            console.log("Train Non Normal: " + nonNormal.length)
+            nonNormal.forEach(train => {
+                console.log(train)
+            })
 
-        writeToFile({ trains: trainPassé }, "train_")
-        if (nonNormal.length > 0) {
-            writeToFile({ trains: nonNormal }, "weird_")
-        }
-    });
+            writeToFile({ trains: trainPassé }, "train_")
+            if (nonNormal.length > 0) {
+                writeToFile({ trains: nonNormal }, "weird_")
+            }
+        }).catch((error) => {
+            console.log(error)
+        });
+
+});
 
 // function creating a file with curent date and time in the name and writing the content of the array in it
 function writeToFile(array, start) {
