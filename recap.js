@@ -4,6 +4,7 @@ import fs from 'fs';
 var today = new Date().getDay();
 const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 var realLate = [];
+var three_min_Late = [];
 console.log(weekday[today])  
 
 //function that get all json file in the folder and return an array of the file name
@@ -17,6 +18,9 @@ function getTrains(typeOfTrain) {
                     jsonFiles.push(train);
                     if (train.difference.includes("minutes") && train.difference.includes("retard")){
                         realLate.push(train)
+                        if (!train.difference.includes("1 minutes") && !train.difference.includes("2 minutes")) {
+                            three_min_Late.push(train)
+                        }
                     }
                 }
             });
@@ -34,7 +38,9 @@ function readFile(file) {
 
 
 
+const weird_trains = getTrains("weird_")
 
 console.log("Train Passé : " + getTrains("train_").length)
 console.log("Train +1 minutes de retard: " + realLate.length)
-console.log("Train officiellement retardé ou annulé : " + getTrains("weird_").length)
+console.log("dont avec +3 minutes de retard: " + three_min_Late.length)
+console.log("Train officiellement retardé ou annulé : " + weird_trains.length)

@@ -14,13 +14,17 @@ const options = {
     }
 };
 
-const trainPassé = []
-const trainFutur = []
-const autreTrain = []
-const nonNormal = []
+var trainPassé = []
+var trainFutur = []
+var autreTrain = []
+var nonNormal = []
 
 cron.schedule('0,15,30,45 * * * *', () => {
     console.log('running a task every minute');
+    trainPassé = []
+    trainFutur = []
+    autreTrain = []
+    nonNormal = []
     fetch(url, options)
         .then(res => {
             if (res.ok) {
