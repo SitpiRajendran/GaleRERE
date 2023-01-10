@@ -114,7 +114,8 @@ cron.schedule('0,15,30,45 * * * *', () => {
                 writeToFile({ trains: nonNormal }, "weird_")
             }
         }).catch((error) => {
-            console.log(error)
+            var logDate = new Date()
+            console.log(logDate + " " + error)
         });
 
 });
@@ -132,8 +133,6 @@ function writeToFile(array, start) {
             });
 }
 
-
-
 function addZero(i) {
     if (i < 10) { i = "0" + i }
     return i;
@@ -144,6 +143,7 @@ function getTime(date1) {
     time.setTime(time.getTime() + 3600);
     return addZero(time.getHours()) + ":" + addZero(time.getMinutes()) + ":" + addZero(time.getSeconds())
 }
+
 // function calculating the time between two dates in minutes and seconds
 function timeDiff(date2, date1) {
     var diff = Date.parse(date1) - Date.parse(date2);
