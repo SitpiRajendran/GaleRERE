@@ -19,7 +19,7 @@ var trainFutur = []
 var autreTrain = []
 var nonNormal = []
 
-cron.schedule('0,15,30,45 * * * *', () => {
+cron.schedule('0,15,30,45 0-3,5-23 * * *', () => {
     console.log('running a task every minute');
     trainPassé = []
     trainFutur = []
