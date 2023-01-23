@@ -11,10 +11,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "crypto": "^1.0.1",
     "dotenv": "^16.0.3",
-    "express": "^4.18.2",
     "fs": "^0.0.1-security",
     "node-cron": "^3.0.2",
-    "node-fetch": "^3.3.0"
+    "node-fetch": "^3.3.0",
+    "oauth-1.0a": "^2.2.6"
   }
 }

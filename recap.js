@@ -1,14 +1,65 @@
+import fetch from 'node-fetch';
 import fs from 'fs';
+import * as dotenv from 'dotenv'
+import cron from 'node-cron';
+
+import OAuth from 'oauth-1.0a';
+import crypto from 'crypto';
+
+dotenv.config();
+
+const oauth = OAuth({
+    consumer: {
+        key: process.env.TWITTER_API_KEY,
+        secret: process.env.TWITTER_API_SECRET,
+    },
+    signature_method: 'HMAC-SHA1',
+    hash_function(base_string, key) {
+        return crypto
+            .createHmac('sha1', key)
+            .update(base_string)
+            .digest('base64')
+    },
+})
+
+const token = {
+    key: process.env.TWITTER_ACCESS_TOKEN,
+    secret: process.env.TWITTER_ACCESS_SECRET
+}
+
+const request_data = {
+    url: 'https://api.twitter.com/2/tweets',
+    method: 'POST',
+    data: ''
+}
+
+
+//post request with header with Oauth token
+const postRequest = async (url, data) => {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': oauth.toHeader(oauth.authorize(request_data, token))['Authorization']
+        },
+        body: JSON.stringify(data)
+    });
+    return response.json();
+}
 
 //get today day of the week
-var today = new Date().getDay();
 var date = new Date();
+date.setDate(date.getDate() - 1);
+var today = date.getDay();
+const weekday = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+const months = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
+const normal = [41+39, 41+41, 41+41, 41+41, 41+41, 41+41, 41+39]
 
-const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-
+var all_trains = [];
+var passed_trains= [];
+var notLate = [];
 var realLate = [];
 var three_min_Late = [];
-
 
 //function that get all json file in the folder and return an array of the file name
 function getTrains(typeOfTrain) {
@@ -19,11 +70,16 @@ function getTrains(typeOfTrain) {
             readFile(file)['trains'].forEach(train => {
                 if (!jsonFiles.some(el => el.id === train.id)) {
                     jsonFiles.push(train);
+                    all_trains.push(train);
+                    if (train.status != "cancelled")
+                        passed_trains.push(train)
                     if (train.difference.includes("minutes") && train.difference.includes("retard")) {
                         realLate.push(train)
                         if (!train.difference.includes("1 minutes") && !train.difference.includes("2 minutes")) {
                             three_min_Late.push(train)
                         }
+                    } else if (train.status.includes("onTime")) {
+                        notLate.push(train)
                     }
                 }
             });
@@ -37,17 +93,28 @@ function readFile(file) {
     var json = JSON.parse(fs.readFileSync(file, 'utf8'));
     return json;
 }
+cron.schedule('1 4 * * *', () => {
+    getTrains("train_");
+    var weird_trains = getTrains("weird_");
+    var string = "";
 
-var all_trains = getTrains("train_");
-var weird_trains = getTrains("weird_");
 
-console.log(weekday[today] + " " + date.getDate() + " " + date.getMonth() + " " + date.getFullYear()) 
-console.log("-")
-console.log("Trains passés à Roissy en Brie : " + all_trains.length)
-console.log("avec +1 minutes de retard: " + realLate.length)
-console.log("dont avec +3 minutes de retard: " + three_min_Late.length)
-console.log("")
-console.log("Train officiellement retardé ou annulé : " + weird_trains.length)
-weird_trains.forEach(train => {
-    console.log("    " + train.mission + " - " + train.destination + " : " + train.arrivee + " // " +  train.status)
-})
+    string += "🚆 " + date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear() + " - Roissy en Brie\n"
+    string += (notLate.length+realLate.length) + " trains sont passés aujourd'hui au lieu des "+ normal[today] + " prévus pour un "+ weekday[today].toLowerCase() +" sans perturbations\n\n"
+    string += "✅ " + notLate.length + " sont passés à l'heure (" + (notLate.length / normal[today]* 100).toFixed(1) + "%)\n\n"
+    string += "⏲ " + realLate.length + " avec +1 min de retard\n"
+    string += "dont " + three_min_Late.length + " avec +3 min de retard\n\n"
+    string += "❌ Train retardé ou annulé d'après la SNCF : " + weird_trains.length
+
+    weird_trains.forEach(train => {
+        console.log("    " + train.mission + " - " + train.destination + " : " + train.arrivee + " // " + train.status)
+    })
+
+    postRequest('https://api.twitter.com/2/tweets', {
+        "text": string
+    }).then(data => {
+        console.log(data)
+    }).catch(err => {
+        console.log(err)
+    })
+});

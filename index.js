@@ -10,7 +10,7 @@ const stationRef = "STIF:StopPoint:Q:41033:";
 const url = 'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=' + stationRef;
 const options = {
     headers: {
-        'apikey': process.env.API_KEY
+        'apikey': process.env.SNCF_API_KEY
     }
 };
 
