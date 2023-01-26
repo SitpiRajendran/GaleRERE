@@ -53,10 +53,10 @@ date.setDate(date.getDate() - 1);
 var today = date.getDay();
 const weekday = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const months = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
-const normal = [41+39, 41+41, 41+41, 41+41, 41+41, 41+41, 41+39]
+const normal = [41 + 39, 41 + 41, 41 + 41, 41 + 41, 41 + 41, 41 + 41, 41 + 39]
 
 var all_trains = [];
-var passed_trains= [];
+var passed_trains = [];
 var notLate = [];
 var realLate = [];
 var three_min_Late = [];
@@ -93,15 +93,59 @@ function readFile(file) {
     var json = JSON.parse(fs.readFileSync(file, 'utf8'));
     return json;
 }
+
+function addZero(i) {
+    if (i < 10) { i = "0" + i }
+    return i;
+}
+
+function writeToFile(array, start) {
+    var date = new Date();
+    var fileName = start + date.getFullYear() + "-" + addZero(date.getMonth() + 1) + "-" + addZero(date.getDate()) + "_" + addZero(date.getHours()) + "-" + addZero(date.getMinutes()) + "-" + addZero(date.getSeconds()) + ".json";
+    fs.writeFile
+        (fileName
+            , JSON.stringify(array)
+            , function (err) {
+                if (err) throw err;
+                console.log(start + ' is saved !');
+            });
+}
+
+//function that delete all file in the folder starting by the string in parameter
+function deleteFiles(start) {
+    var files = fs.readdirSync("./");
+    files.forEach(file => {
+        if (file.includes(start)) {
+            fs.unlink(file, err => {
+                if (err) {
+                    throw err
+                }
+            })
+        }
+    });
+    console.log("Files deleted")
+}
+
+
 cron.schedule('1 4 * * *', () => {
+    var string = "";
+    all_trains = [];
+    passed_trains = [];
+    notLate = [];
+    realLate = [];
+    three_min_Late = [];
+    
+    date = new Date();
+    date.setDate(date.getDate() - 1);
+    today = date.getDay();
+    
     getTrains("train_");
     var weird_trains = getTrains("weird_");
-    var string = "";
 
 
     string += "🚆 " + date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear() + " - Roissy en Brie\n"
-    string += (notLate.length+realLate.length) + " trains sont passés aujourd'hui au lieu des "+ normal[today] + " prévus pour un "+ weekday[today].toLowerCase() +" sans perturbations\n\n"
-    string += "✅ " + notLate.length + " sont passés à l'heure (" + (notLate.length / normal[today]* 100).toFixed(1) + "%)\n\n"
+    string += (notLate.length + realLate.length) + " trains sont passés aujourd'hui au lieu des " + normal[today] + " prévus pour un " + weekday[today].toLowerCase() + " sans perturbations\n\n"
+    string += "✅ " + notLate.length + " sont passés à l'heure (" + (notLate.length / normal[today] * 100).toFixed(1) + "%)\n\n"
     string += "⏲ " + realLate.length + " avec +1 min de retard\n"
     string += "dont " + three_min_Late.length + " avec +3 min de retard\n\n"
     string += "❌ Train retardé ou annulé d'après la SNCF : " + weird_trains.length
@@ -117,4 +161,9 @@ cron.schedule('1 4 * * *', () => {
     }).catch(err => {
         console.log(err)
     })
+    console.log(string)
+
+    writeToFile(all_trains, "all_");
+    deleteFiles("train_");
+    deleteFiles("weird_");
 });
